@@ -128,6 +128,9 @@ target.scene.position.set(0, 2, -TARGET_DISTANCE)
 // add jungle to scene
 scene.add(jungle.scene)
 
+// set sky blue color on scene
+scene.background = new THREE.Color(0x6699ff)
+
 // enable xr features on renderer
 renderer.xr.enabled = true
 

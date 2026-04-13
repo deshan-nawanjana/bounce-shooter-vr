@@ -1,6 +1,9 @@
 import * as THREE from "./assets/libraries/three.module.min.js"
 import { GLTFLoader } from "./assets/libraries/loaders/GLTFLoader.js"
 
+// base url
+const baseURL = window.baseURL ?? ""
+
 // maximum targets to spawn
 const MAX_TARGETS = 5
 // time duration for targets to be visible
@@ -40,7 +43,7 @@ const loadAudio = url => {
     // resolve audio on metadata loaded
     audio.addEventListener("loadedmetadata", () => resolve(audio))
     // set audio url to load
-    audio.src = url
+    audio.src = baseURL + url
   })
 }
 
@@ -94,13 +97,13 @@ audio.success[0].volume = 0.5
 audio.success[1].volume = 0.5
 
 // load models
-const gun = await modelLoader.loadAsync("assets/models/gun.glb", updateProgress)
-const ball = await modelLoader.loadAsync("assets/models/ball.glb", updateProgress)
-const target = await modelLoader.loadAsync("assets/models/target.glb", updateProgress)
-const jungle = await modelLoader.loadAsync("assets/models/jungle.glb", updateProgress)
+const gun = await modelLoader.loadAsync(baseURL + "assets/models/gun.glb", updateProgress)
+const ball = await modelLoader.loadAsync(baseURL + "assets/models/ball.glb", updateProgress)
+const target = await modelLoader.loadAsync(baseURL + "assets/models/target.glb", updateProgress)
+const jungle = await modelLoader.loadAsync(baseURL + "assets/models/jungle.glb", updateProgress)
 
 // load textures
-const texture = await textureLoader.loadAsync("assets/images/message.png")
+const texture = await textureLoader.loadAsync(baseURL + "assets/images/message.png")
 
 // create message sprite
 const message = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture }))

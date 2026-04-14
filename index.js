@@ -156,8 +156,10 @@ function checkCollision(start, end, targets) {
   const meshes = targets.map(item => item.userData.mesh)
   // get intersect objects results
   const intersects = raycaster.intersectObjects(meshes, true)
-  // return intersecting object
-  return intersects.length ? intersects[0].object.userData.item : null
+  // get intersecting item
+  const item = intersects.length ? intersects[0].object.userData.item : null
+  // return by checking if already hit
+  return item && !item.userData.hit ? item : null
 }
 
 // for each controller grip

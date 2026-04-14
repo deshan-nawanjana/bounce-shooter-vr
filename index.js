@@ -122,7 +122,7 @@ gun.scene.scale.set(0.02, 0.02, 0.02)
 gun.scene.rotation.set(-0.8, -1.57, 0)
 
 // update ball scale
-ball.scene.scale.set(0.2, 0.2, 0.2)
+ball.scene.scale.set(0.4, 0.4, 0.4)
 
 // update target scale, rotation, and position
 target.scene.scale.set(0, 0, 0)
@@ -143,30 +143,21 @@ let isStarted = false
 // controller grips array
 const grips = []
 
-// boxes to intersect objects
-const sourceBox = new THREE.Box3()
-const targetBox = new THREE.Box3()
+// create raycaster
+const raycaster = new THREE.Raycaster()
 
 // check collision between meshes
-function checkCollision(source, targets) {
-  // set source box
-  sourceBox.setFromObject(source)
-  // for each target
-  for (let i = 0; i < targets.length; i++) {
-    // get target item
-    const target = targets[i]
-    // set target box
-    targetBox.setFromObject(target)
-    // check if boxes are collided
-    if (sourceBox.intersectsBox(targetBox)) {
-      // continue if fading out
-      if (target.userData.state === "fade-out") { continue }
-      // return as collided target
-      return target
-    }
-  }
-  // return as no collision
-  return null
+function checkCollision(start, end, targets) {
+  // get shooting direction
+  const direction = end.clone().sub(start).normalize()
+  // set raycaster origin and direction
+  raycaster.set(start, direction)
+  // map targets into intersecting meshes
+  const meshes = targets.map(item => item.userData.mesh)
+  // get intersect objects results
+  const intersects = raycaster.intersectObjects(meshes, true)
+  // return intersecting object
+  return intersects.length ? intersects[0].object.userData.item : null
 }
 
 // for each controller grip
@@ -242,17 +233,31 @@ for (let i = 0; i < 2; i++) {
     // play shoot sound
     shootAudio.play()
     // get world position of controller
-    grip.userData.start = grip.position.clone()
+    const start = grip.position.clone()
     // get position by laser
-    laser.getWorldPosition(grip.userData.start)
+    laser.getWorldPosition(start)
     // get rotation by laser
     laser.getWorldDirection(direction)
-    // get collision object
-    const collision = checkCollision(laser, targets.children)
     // get distance scalar
-    const distance = collision
-      ? direction.multiplyScalar(-TARGET_DISTANCE)
-      : direction.multiplyScalar(-FIRE_DISTANCE)
+    const distance = direction.multiplyScalar(-FIRE_DISTANCE)
+    // calculate end position
+    const end = start.clone().add(distance)
+    // get collision object
+    const collision = checkCollision(start, end, targets.children)
+    // set collision object
+    grip.userData.hit = collision
+    // set shooting time
+    grip.userData.time = performance.now()
+    // set bullet start position
+    grip.userData.start = start
+    // get rotation by laser
+    laser.getWorldDirection(direction)
+    // set bullet end position
+    grip.userData.end = collision
+      // only goes up to target distance when collide
+      ? start.clone().add(direction.multiplyScalar(-TARGET_DISTANCE))
+      // goes to maximum bullet distance
+      : end
     // play success audio if collision
     if (collision) {
       // reset success sound
@@ -260,12 +265,6 @@ for (let i = 0; i < 2; i++) {
       // play success sound
       successAudio.play()
     }
-    // calculate end position
-    grip.userData.end = grip.userData.start.clone().add(distance)
-    // set shooting time
-    grip.userData.time = performance.now()
-    // set hit target
-    grip.userData.hit = collision
     // show bullet
     bullet.visible = true
   })
@@ -289,8 +288,6 @@ const updateControllerGrips = currentTime => {
     const factor = Math.min(elapsed / duration, 1)
     // interpolate bullet from start to end
     bullet.position.lerpVectors(start, end, factor)
-    // update bullet scale
-    bullet.scale.setScalar(0.2 + factor * 0.5)
     // check if factor exceeded
     if (factor >= 1) {
       // set as inactive
@@ -347,14 +344,20 @@ const updateTargets = (currentTime, delta) => {
   if (targets.children.length < MAX_TARGETS && currentTime - lastSpawnedTime > TARGET_DELAY) {
     // create target item
     const item = new THREE.Object3D()
+    // set random rotation
+    setRandomRotation(item)
+    // clone target model
+    const clone = target.scene.clone()
     // set created time
     item.userData.time = currentTime
     // set item state
     item.userData.state = "fade-in"
-    // set random rotation
-    setRandomRotation(item)
-    // clone a target model into item
-    item.add(target.scene.clone())
+    // set intersecting mesh of clone
+    item.userData.mesh = clone.children[0]
+    // set item on mesh data
+    item.userData.mesh.userData.item = item
+    // add model into item
+    item.add(clone)
     // add item to container
     targets.add(item)
     // update last spawned time
